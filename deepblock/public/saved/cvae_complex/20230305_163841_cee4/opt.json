@@ -1,0 +1,78 @@
+{
+  "random_seed": 20230112,
+  "warm_batch_size": 32,
+  "batch_size": 64,
+  "valid_batch_size": 256,
+  "num_workers": 8,
+  "x_max_len": 30,
+  "c_max_len": 1000,
+  "esm_model_name": "esm2_t6_8M_UR50D",
+  "split_pro": {
+    "train": 0.8,
+    "valid": 0.2
+  },
+  "use_pretrain_frag_vector": false,
+  "x_emb_dim": 128,
+  "x_enc_hid_dim": 256,
+  "x_enc_hid_layers": 3,
+  "x_dec_hid_dim": 256,
+  "x_dec_hid_layers": 3,
+  "x_dropout": 0.25,
+  "x_bidirectional": false,
+  "c_emb_dim": 256,
+  "c_eng_hid_dim": 256,
+  "c_dropout": 0.25,
+  "h_hid_dim": 256,
+  "h_dropout": 0.25,
+  "latent_dim": 128,
+  "bow_hid_dim": 256,
+  "bow_dropout": 0.25,
+  "max_epochs": 200,
+  "optim_lr": 0.001,
+  "bow_weight": 1,
+  "rel_weight": 1,
+  "esm_cache_enable": true,
+  "use_esm_warm": true,
+  "move_esm_model_to_cpu_after_warm": true,
+  "rel_fn_type": "exp",
+  "optim_lr_scheduler": {
+    "mode": "MultiStepLR",
+    "value": {
+      "milestones": [
+        20,
+        40,
+        120
+      ],
+      "gamma": 0.1
+    }
+  },
+  "clip_max_norm": 1000.0,
+  "beta_vae": {
+    "mode": "annealing",
+    "value": {
+      "cycle": 0,
+      "min_point": 0,
+      "max_point": 200,
+      "min_beta": 0.00001,
+      "max_beta": 1
+    }
+  },
+  "show_tqdm": true,
+  "base_train_id": "20230303_191022_be9e",
+  "base_weight_choice": "valid/loss",
+  "crossdocked_cached_dn": "saved/preprocess/crossdocked",
+  "chembl_cached_dn": "saved/preprocess/chembl",
+  "include": "crossdocked",
+  "vocab_fn": "saved/preprocess/merge_vocabs/chembl,crossdocked&frag_vocab.json",
+  "device": "cuda:4",
+  "esm_device": "cuda:4",
+  "esm_cache_device": "cuda:4",
+  "suffix": null,
+  "dev": false,
+  "no_wandb": false,
+  "config": [
+    "scripts/cvae_complex/complex_config.yaml"
+  ],
+  "train_id": "20230305_163841_cee4",
+  "base_weight_fn": "saved/cvae_complex/20230303_191022_be9e/weights/00199.pt"
+}

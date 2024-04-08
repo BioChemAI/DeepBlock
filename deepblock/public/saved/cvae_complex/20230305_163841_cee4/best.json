@@ -1,0 +1,36 @@
+{
+  "last_epoch": 199,
+  "save_step": 10,
+  "values": {
+    "train/recons": 0.5826884706068324,
+    "train/kld": 13.495468515711034,
+    "train/bow": 9.233163950991303,
+    "train/rel": 0.13404805558087524,
+    "train/loss": 13.454394915997394,
+    "valid/recons": 0.825207072484115,
+    "valid/kld": 10.498909487616071,
+    "valid/bow": 8.511706503386158,
+    "valid/rel": 0.12271656101781903,
+    "valid/loss": 12.41817574502518,
+    "valid/prior_recons": 17.24712064236452,
+    "valid/prior_bow": 29.513651795830977,
+    "valid/error": 0.0457895254004127,
+    "valid/prior_error": 0.9676722020241721
+  },
+  "epochs": {
+    "train/recons": 23,
+    "train/kld": 199,
+    "train/bow": 23,
+    "train/rel": 27,
+    "train/loss": 4,
+    "valid/recons": 6,
+    "valid/kld": 199,
+    "valid/bow": 9,
+    "valid/rel": 37,
+    "valid/loss": 3,
+    "valid/prior_recons": 199,
+    "valid/prior_bow": 199,
+    "valid/error": 27,
+    "valid/prior_error": 118
+  }
+}

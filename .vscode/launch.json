@@ -1,0 +1,490 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "debugpy: Attach",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            }
+            // debug="-m debugpy --listen 5678 --wait-for-client"
+        },
+        {
+            "name": "debugpy: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Preprocess: ChEMBL",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/preprocess/chembl.py",
+            "args": [
+                "--chembl-chemreps", "E:\\Dataset_Folders\\Other-Datasets\\chembl_31_chemreps.txt",
+                "--dev"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Preprocess: CrossDocked",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/preprocess/crossdocked.py",
+            "args": [
+                "--sbdd-dir", "E:\\Dataset_Folders\\3D-Generative-SBDD\\crossdocked_pocket10_with_protein",
+                "--dev"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Train: CVAE Complex - ChEMBL",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cvae_complex/train.py",
+            "args": [
+                "--include", "chembl",
+                // "--dev",
+                "--device", "cuda:0",
+                // "--config", "scripts/cvae_complex/frag_pretrain_config.yaml",
+                "--no-valid-prior"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Train: CVAE Complex - CrossDocked",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cvae_complex/train.py",
+            "args": [
+                "--include", "crossdocked",
+                "--dev",
+                "--device", "cuda:5",
+                "--base-train-id", "20230303_191022_be9e",
+                "--crossdocked-cached-dn", "saved/preprocess/crossdocked"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Sample: CVAE Complex - CrossDocked",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cvae_complex/sample.py",
+            "args": [
+                "--include", "crossdocked",
+                "--dev",
+                "--device", "cuda:5",
+                "--base-train-id", "[dev]20230330_081740_8fab",
+                // "--base-weight-choice", "99",
+                "--num-samples", "100",
+                "--validate-mol",
+                "--embed-mol",
+                "--unique-mol"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Prepare batch docking - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/prepare_batch_docking.py",
+            "args": [
+                "--include", "crossdocked",
+                "--sbdd-dir", "/dataset/sbdd_with_protein/crossdocked_pocket10",
+                "--dev",
+                "--base-train-id", "20230305_163841_cee4",
+                "--suffix", "_100veu",
+                "--n-jobs", "8"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Run batch docking",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/run_batch_docking.py",
+            "args": [
+                "--dock-backend", "vina",
+                "--input", "saved/cvae_complex/20230305_163841_cee4/evalute/batch_docking_input_100veu_vina.tar.gz",
+                "--dev",
+                // "--n-procs", "16"
+                "--n-jobs", "1"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "subProcess": false
+        },
+        {
+            "name": "Evaluate: Summary - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/summary.py",
+            "args": [
+                "--base-train-id", "${input:train_id}",
+                // "--evaluate-suffix", "",
+                "--suffix", "_100veu",
+                // "--docking-suffix", "_100veu_vina"
+                "--docking-suffix", "_100veu_qvina2"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: QED, SA - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/compute_qedsa.py",
+            "args": [
+                "--dev",
+                "--base-train-id", "${input:train_id}",
+                "--evaluate-suffix", "",
+                "--suffix", "_100veu",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Dist - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/compute_dist.py",
+            "args": [
+                "--dev",
+                "--base-train-id", "${input:train_id}",
+                "--evaluate-suffix", "",
+                "--suffix", "_100veu",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Show Rel - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/show_rel.py",
+            "args": [
+                // "--complex-id", "d2ba200d",
+                // "--complex-id", "468491a2",
+                // "--complex-id", "3deb2e56",
+                // "--complex-id", "ca182c69",
+                "--complex-id", "79455b75",
+                "--base-train-id", "${input:train_id}",
+                "--suffix", "_100veu",
+                "--docking-suffix", "_100veu_vina"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Retro - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/compute_retro.py",
+            "args": [
+                "--dev",
+                "--base-train-id", "${input:train_id}",
+                "--job-id-suffix", "_dev",
+                "--evaluate-suffix", "",
+                "--limit", "2",
+                "--save-every", "1",
+                "--suffix", "_100veu",
+                "--enable-pend",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Optimize: CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cvae_complex/optimize.py",
+            "args": [
+                "--device", "cuda:6",
+                "--base-train-id", "[dev]20230330_081740_8fab",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Optimize only one: CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cvae_complex/optimize.py",
+            "args": [
+                "--device", "cpu",
+                "--base-train-id", "20230305_163841_cee4",
+                "--num-samples", "5000",
+                "--complex-id", "F16P1_HUMAN_1_338_0/3kc1_A_rec_3kc1_2t6_lig_tt_min_0"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Prepare batch docking for optimize - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate_optimize/prepare_batch_docking.py",
+            "args": [
+                "--include", "crossdocked",
+                "--sbdd-dir", "/dataset/sbdd_with_protein/crossdocked_pocket10",
+                "--base-train-id", "20230305_163841_cee4",
+                "--suffix", "_100",
+                // "--n-jobs", "8"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Summary for optimize - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate_optimize/summary.py",
+            "args": [
+                "--base-train-id", "${input:train_id}",
+                // "--suffix", "_100",
+                // "--docking-suffix", "_100_vina"
+                "--suffix", "_5000_only-b36d",
+                "--docking-suffix", "_5000_only-b36d_qvina2"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Dist for optimize - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate_optimize/compute_dist.py",
+            "args": [
+                "--dev",
+                "--base-train-id", "${input:train_id}",
+                "--suffix", "_100",
+                // "--suffix", "_5000_only-b36d",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Dist for optimize (Ref) - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate_optimize/compute_dist.ref.py",
+            "args": [
+                "--dev",
+                "--base-train-id", "${input:train_id}",
+                // "--suffix", "_100",
+                "--suffix", "_5000_only-b36d",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Sample with MSO: CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cvae_complex/sample_mso.py",
+            "args": [
+                "--device", "cpu",
+                "--base-train-id", "20230305_163841_cee4",
+                "--num-samples", "200",
+                "--num-steps", "20",
+                // "--complex-id", "F16P1_HUMAN_1_338_0/3kc1_A_rec_3kc1_2t6_lig_tt_min_0"
+                "--complex-id", "ATS5_HUMAN_262_480_0/3hy9_B_rec_3hyg_099_lig_tt_min_0"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Train: Regress Tox",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/regress_tox/train.py",
+            "args": [
+                "--dev",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Chem Test: Regress Tox",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/regress_tox/chem_test.py",
+            "args": [
+                "--base-train-id", "20230402_135859_c91a",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Sample with Population: CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cvae_complex/sample_popu.py",
+            "args": [
+                "--device", "cpu",
+                "--base-train-id", "20230305_163841_cee4",
+                "--num-samples", "100",
+                "--num-steps", "20",
+                // "--complex-id", "F16P1_HUMAN_1_338_0/3kc1_A_rec_3kc1_2t6_lig_tt_min_0"
+                "--complex-id", "ATS5_HUMAN_262_480_0/3hy9_B_rec_3hyg_099_lig_tt_min_0"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Sample with SA: CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cvae_complex/sample_sa.py",
+            "args": [
+                "--device", "cpu",
+                "--base-train-id", "20230305_163841_cee4",
+                "--num-samples", "100",
+                "--num-steps", "50",
+                // "--complex-id", "F16P1_HUMAN_1_338_0/3kc1_A_rec_3kc1_2t6_lig_tt_min_0",
+                // "--complex-id", "ATS5_HUMAN_262_480_0/3hy9_B_rec_3hyg_099_lig_tt_min_0",
+                // "--complex-id", "TBK1_HUMAN_1_303_0/4iwq_A_rec_4jlc_su6_lig_tt_min_0",
+                "--complex-id", "CCPR_YEAST_69_361_0/1a2g_A_rec_4jmv_1ly_lig_tt_min_0"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Summary - Baseline",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/summary.py",
+            "args": [
+                "--baseline",
+                // "--base-train-id", "ligan",
+                // // "--docking-suffix", "_vina",
+                // "--docking-suffix", "_qvina2",
+                "--base-train-id", "3d_sbdd",
+                "--suffix", "_uff",
+                // "--docking-suffix", "_uff_vina",
+                "--docking-suffix", "_uff_qvina2",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Preprocess: PDBbind",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/preprocess/pdbbind.py",
+            "args": [
+                "--pdbbind-dir", "E:\\Dataset_Folders\\PDBbind-Database",
+                "--n-jobs", "4",
+                "--dev"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Train: CVAE Complex - PDBbind",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cvae_complex/train.py",
+            "args": [
+                "--include", "pdbbind",
+                // "--dev",
+                "--device", "cuda:0",
+                "--base-train-id", "20230416_084827_53dc",
+                // "--pdbbind-cached-dn", "saved/preprocess/pdbbind_dev",
+                "--config", "scripts/cvae_complex/complex_config.yaml"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Detail - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/detail.py",
+            "args": [
+                "--base-train-id", "${input:train_id}",
+                // "--evaluate-suffix", "",
+                "--suffix", "_100veu",
+                // "--docking-suffix", "_100veu_vina"
+                "--docking-suffix", "_100veu_qvina2"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Detail - Baseline",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/detail.py",
+            "args": [
+                "--baseline",
+                "--base-train-id", "ligan",
+                // "--docking-suffix", "_vina",
+                "--docking-suffix", "_qvina2",
+                // "--base-train-id", "3d_sbdd",
+                // "--suffix", "_uff",
+                // // "--docking-suffix", "_uff_vina",
+                // "--docking-suffix", "_uff_qvina2",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Quick start - Generate",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/quick_start/generate.py",
+            "args": [
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Sample succ: CVAE Complex - CrossDocked",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/cvae_complex/sample_succ.py",
+            "args": [
+                "--include", "crossdocked",
+                "--device", "cpu",
+                "--base-train-id", "${input:train_id}",
+                "--max-attempts", "200",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Evaluate: Succ - CVAE Complex",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/evaluate/compute_succ.py",
+            "args": [
+                "--base-train-id", "${input:train_id}",
+                "--suffix", "_200",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+    ],
+    "inputs": [
+        {
+            "type": "promptString",
+            "id": "train_id",
+            "description": "Train ID.",
+            "default": "20230305_163841_cee4"
+        },
+    ]
+}

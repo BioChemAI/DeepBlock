@@ -1,0 +1,5 @@
+random_seed: 20230401
+split_pro:
+    train: 0.75
+    test: 0.25
+    

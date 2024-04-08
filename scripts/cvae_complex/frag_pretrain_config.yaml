@@ -1,0 +1,6 @@
+batch_size: 2048
+valid_batch_size: 2048
+num_workers: 4
+
+esm_cache_enable: false
+use_esm_warm: false

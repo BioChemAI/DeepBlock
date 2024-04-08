@@ -1,0 +1,4 @@
+include README.md
+include environment.yml
+include patch_tpot.py
+recursive-include deepblock/public *

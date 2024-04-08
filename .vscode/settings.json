@@ -1,0 +1,16 @@
+{
+    "search.exclude": {
+        "/saved": true,
+        "/tmp": true,
+        "/wandb": true,
+        "/work": true,
+        "/cache": true
+    },
+    "todo-tree.filtering.excludeGlobs": [
+        "**/saved/*/**",
+        "**/tmp/*/**",
+        "**/wandb/*/**",
+        "**/work/*/**",
+        "**/cache/*/**",
+    ]
+}
