@@ -9,7 +9,16 @@
 This is the official implantation of the paper "A Deep Learning Approach for Rational Ligand Generation with Property Control via Reactive Building Blocks".
 Additionally, we offer a user-friendly [web server](https://biochemai.app.pizyds.com/) to implement the functionality of DeepBlock.
 
-## Install
+## Table of Contents
+1. [Installation](#Installation)
+2. [Usage](#Usage)
+3. [Develop](#Develop)
+    - [Peprocess dataset](#Peprocess dataset)
+    - [Train DeepBlock](#Train DeepBlock)
+    - [Ligand generation and optimization](#Ligand generation and optimization)
+
+
+## Installation
 
 ```bash
 git clone git@github.com:BioChemAI/DeepBlock.git
@@ -44,7 +53,7 @@ python scripts/quick_start/generate.py \
 
 It is recommended to use VSCode for development, as debugging configuration files are already available in `.vscode`.
 
-### Peprocess
+### Peprocess dataset
 
 #### ChEMBL Dataset
 
@@ -74,7 +83,7 @@ python scripts/preprocess/merge_vocabs.py \
     --includes chembl crossdocked
 ```
 
-### Train
+### Train DeepBlock
 
 #### Pretraining on ChEMBL Dataset with ChEMBL+CrossDocked Dictionary
 
@@ -99,9 +108,9 @@ python scripts/cvae_complex/train.py \
     --base-train-id 20230303_191022_be9e
 ```
 
-### Sample
+### Ligand generation and optimization
 
-#### Molecular Generation
+#### Ligand Generation
 
 Replace `20230305_163841_cee4` with train ID.
 
@@ -116,7 +125,7 @@ python scripts/cvae_complex/sample.py \
     --unique-mol
 ```
 
-#### Molecular optimization
+#### Affinity optimization
 
 ```bash
 python scripts/cvae_complex/optimize.py \
@@ -126,7 +135,7 @@ python scripts/cvae_complex/optimize.py \
     --complex-id F16P1_HUMAN_1_338_0/3kc1_A_rec_3kc1_2t6_lig_tt_min_0
 ```
 
-#### Molecular optimization (SA)
+#### Property optimization (SA)
 
 ```bash
 python scripts/cvae_complex/sample_sa.py \
