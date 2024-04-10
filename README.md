@@ -10,15 +10,15 @@ This is the official implantation of the paper "A Deep Learning Approach for Rat
 Additionally, we offer a user-friendly [web server](https://biochemai.app.pizyds.com/) to implement the functionality of DeepBlock.
 
 ## Table of Contents
-1. [Installation](#Installation)
-2. [Usage](#Usage)
-3. [Develop](#Develop)
+- [Installation](#Installation)
+- [Usage](#Usage)
+- [Develop](#Develop)
     
-    3.1 [Peprocess dataset](#Peprocess dataset)
+    - [Peprocess dataset](#Peprocess dataset)
    
-    3.2 [Train DeepBlock](#Train DeepBlock)
+    - [Train DeepBlock](#Train DeepBlock)
     
-    3.3 [Ligand generation and optimization](#Ligand generation and optimization)
+    - [Ligand generation and optimization](#Ligand generation and optimization)
 
 
 ## Installation
