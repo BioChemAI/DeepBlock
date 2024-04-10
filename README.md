@@ -13,9 +13,12 @@ Additionally, we offer a user-friendly [web server](https://biochemai.app.pizyds
 1. [Installation](#Installation)
 2. [Usage](#Usage)
 3. [Develop](#Develop)
-    - [Peprocess dataset](#Peprocess dataset)
-    - [Train DeepBlock](#Train DeepBlock)
-    - [Ligand generation and optimization](#Ligand generation and optimization)
+    
+    3.1 [Peprocess dataset](#Peprocess dataset)
+   
+    3.2 [Train DeepBlock](#Train DeepBlock)
+    
+    3.3 [Ligand generation and optimization](#Ligand generation and optimization)
 
 
 ## Installation
