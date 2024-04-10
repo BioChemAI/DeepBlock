@@ -14,11 +14,11 @@ Additionally, we offer a user-friendly [web server](https://biochemai.app.pizyds
 - [Usage](#Usage)
 - [Develop](#Develop)
     
-    - [Peprocess dataset](#Peprocess dataset)
+    - [Peprocess](#Peprocess)
    
-    - [Train DeepBlock](#Train DeepBlock)
+    - [Train](#Train)
     
-    - [Ligand generation and optimization](#Ligand generation and optimization)
+    - [Inference](#Inference)
 
 
 ## Installation
@@ -86,7 +86,7 @@ python scripts/preprocess/merge_vocabs.py \
     --includes chembl crossdocked
 ```
 
-### Train DeepBlock
+### Train
 
 #### Pretraining on ChEMBL Dataset with ChEMBL+CrossDocked Dictionary
 
@@ -111,7 +111,7 @@ python scripts/cvae_complex/train.py \
     --base-train-id 20230303_191022_be9e
 ```
 
-### Ligand generation and optimization
+### Inference
 
 #### Ligand Generation
 
