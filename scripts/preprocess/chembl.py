@@ -2,7 +2,7 @@
 
 ```bash
 cd /dataset
-wget https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/latest/chembl_31_chemreps.txt.gz
+wget https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_31/chembl_31_chemreps.txt.gz
 gzip -dk chembl_31_chemreps.txt.gz
 ```
 

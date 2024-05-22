@@ -10,16 +10,13 @@ This is the official implantation of the paper "A Deep Learning Approach for Rat
 Additionally, we offer a user-friendly [web server](https://biochemai.app.pizyds.com/) to implement the functionality of DeepBlock.
 
 ## Table of Contents
-- [Installation](#Installation)
-- [Usage](#Usage)
-- [Develop](#Develop)
-    
-    - [Peprocess](#Peprocess)
-   
-    - [Train](#Train)
-    
-    - [Inference](#Inference)
 
+- [Installation](#installation)
+- [Usage](#usage)
+- [Develop](#develop)
+  - [Dataset](#dataset)
+  - [Train](#train)
+  - [Inference](#inference)
 
 ## Installation
 
@@ -56,9 +53,16 @@ python scripts/quick_start/generate.py \
 
 It is recommended to use VSCode for development, as debugging configuration files are already available in `.vscode`.
 
-### Peprocess dataset
+### Dataset
 
 #### ChEMBL Dataset
+
+```bash
+wget https://ftp.ebi.ac.uk/pub/databases/chembl/ChEMBLdb/releases/chembl_31/chembl_31_chemreps.txt.gz
+gzip -dk chembl_31_chemreps.txt.gz
+```
+
+Finally, run the script
 
 ```bash
 python scripts/preprocess/chembl.py \
@@ -67,12 +71,51 @@ python scripts/preprocess/chembl.py \
 
 #### CrossDocked Dataset (Index by [3D-Generative-SBDD](https://github.com/luost26/3D-Generative-SBDD))
 
+Download from the compressed package we provide (coming soon) (recommended). The alternative method is to obtain the files from the [3D-Generative-SBDD's index file](https://github.com/luost26/3D-Generative-SBDD/blob/main/data/README.md) and the [raw data for the CrossDocked2020 set](https://github.com/gnina/models/tree/master/data/CrossDocked2020). The script will re-fetch the required files.
+
+The following files are required to exist:
+
+- `$sbdd_dir/split_by_name.pt`
+- `$sbdd_dir/index.pkl`
+- `$sbdd_dir/1B57_HUMAN_25_300_0/5u98_D_rec_5u98_1kx_lig_tt_min_0_pocket10.pdb`
+- `$sbdd_dir/1B57_HUMAN_25_300_0/5u98_D_rec.pdb` (Recommended method)
+- `$crossdocked_dir/1B57_HUMAN_25_300_0/5u98_D_rec.pdb` (Alternative method)
+
+Finally, run the script
+
 ```bash
 python scripts/preprocess/crossdocked.py \
-    --sbdd-dir <PATH TO crossdocked_pocket10_with_protein>
+    --sbdd-dir <PATH TO crossdocked_pocket10_with_protein> \
+    # --crossdocked-dir <PATH TO CrossDocked2020> # Not needed when using the recommended method
 ```
 
 #### PDBbind Dataset (Optional)
+
+Please download the following 3 files from the [PDBbind v2020](http://www.pdbbind.org.cn/download.php) 
+to the same directory (assuming it is `$pdbbind_dir`).
+
+1. Index files of PDBbind -> PDBbind_v2020_plain_text_index.tar.gz
+2. Protein-ligand complexes: The general set minus refined set -> PDBbind_v2020_other_PL.tar.gz
+3. Protein-ligand complexes: The refined set -> PDBbind_v2020_refined.tar.gz
+
+To extract the files, first navigate to the `$pdbbind_dir` directory and then use the following command.
+
+```bash
+tarballs=("PDBbind_v2020_plain_text_index.tar.gz" "PDBbind_v2020_refined.tar.gz" "PDBbind_v2020_other_PL.tar.gz")
+for tarball in "${tarballs[@]}"
+do
+  dirname=${tarball%%.*}
+  mkdir -p "$dirname" && pv -N "Extracting $tarball" "$tarball" | tar xzf - -C "$dirname"
+done
+```
+
+The following files are required to exist:
+
+- `$pdbbind_dir/PDBbind_v2020_plain_text_index/index/INDEX_general_PL.2020`
+- `$pdbbind_dir/PDBbind_v2020_refined/refined-set/1a1e/1a1e_ligand.sdf`
+- `$pdbbind_dir/PDBbind_v2020_other_PL/v2020-other-PL/1a0q/1a0q_protein.pdb`
+
+Finally, run the script
 
 ```bash
 python scripts/preprocess/pdbbind.py \
