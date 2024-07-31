@@ -9,6 +9,10 @@
 This is the official implantation of the paper "A Deep Learning Approach for Rational Ligand Generation with Property Control via Reactive Building Blocks".
 Additionally, we offer a user-friendly [web server](https://biochemai.app.pizyds.com/) to implement the functionality of DeepBlock.
 
+[Github](https://github.com/BioChemAI/DeepBlock) -
+[Docker Hub](https://hub.docker.com/r/pillarszhang/deepblock) -
+[Web Server](https://biochemai.app.pizyds.com/)
+
 ## Table of Contents
 
 - [Installation](#installation)
@@ -37,6 +41,12 @@ docker build --target base -t deepblock .
 docker run -it --rm deepblock
 ```
 
+The image has been uploaded to Docker Hub.
+
+```bash
+docker pull pillarszhang/deepblock:20240801A
+```
+
 ## Usage
 
 Quick start, `--input-type` can be 'seq', 'pdb', 'url', 'pdb_fn', 'pdb_id'.
@@ -47,6 +57,19 @@ python scripts/quick_start/generate.py \
     --input-type pdb_id \
     --num-samples 16 \
     --output-json tmp/generate_result.json
+```
+
+Docker.
+
+```bash
+docker run --rm \
+    -v "$(pwd)"/tmp:/app/tmp \
+    pillarszhang/deepblock:20240801A \
+    bash -lc "python scripts/quick_start/generate.py \
+        --input-data 4IWQ \
+        --input-type pdb_id \
+        --num-samples 16 \
+        --output-json tmp/generate_result.json"
 ```
 
 ## Develop
