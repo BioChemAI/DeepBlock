@@ -558,6 +558,7 @@ rel_fn_dic: Dict[str, TRelFn] = {
 def download_pbar(url: str, timeout: Number=60, desc: str='Download', 
                   chunk_size: int=1024, file_handle: BinaryIO=None):
     response = requests.get(url, stream=True, timeout=timeout)
+    response.raise_for_status()
     total = response.headers.get('content-length', None)
     if total is not None: total = int(total)
     pbar = tqdm(desc=desc, total=total, unit='iB', unit_scale=True, unit_divisor=1024)
@@ -886,3 +887,9 @@ def rdkit_mol_decorator(func: Callable[[Mol, Any], Any]):
                 raise RDKitException(f"{rdLog()}: {repr(err)}")
         return ret
     return wrapper
+
+def chunked(sequence: Sequence, n: int) -> List[List]:
+    """
+    Splits a sequence into chunks of size n.
+    """
+    return [sequence[i:i + n] for i in range(0, len(sequence), n)]

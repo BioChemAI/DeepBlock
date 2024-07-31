@@ -3,8 +3,8 @@ from pathlib import Path
 import warnings
 from rdkit import Chem
 from rdkit.Chem import Descriptors, Crippen, Lipinski
-from deepblock.utils import ignore_exception, rdkit_log_handle, vin
-from deepblock.exceptions import RDKitException
+from ..utils import ignore_exception, rdkit_log_handle, vin
+from ..exceptions import RDKitException
 
 try:
     sys.path.append(str(Path(Chem.RDConfig.RDContribDir)/ 'SA_Score'))

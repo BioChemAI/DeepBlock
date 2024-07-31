@@ -6,6 +6,7 @@ from .common import *
 from .vocab import Vocab, VocabSpecialIndex, VocabSpecialSymbol
 from .time_limit import time_limit
 from . import complex_to_aa, mol_to_frag, smi_to_fp, smi_to_word
+# from . import sparse_gp
 
 __all__ = [
     "Mol", "StrPath",
@@ -42,4 +43,6 @@ __all__ = [
     "time_limit",
 
     "complex_to_aa", "mol_to_frag", "smi_to_fp", "smi_to_word",
+
+    "gaussian_process", "chunked"
 ]

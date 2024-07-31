@@ -95,7 +95,8 @@ class RawThirdDataset(Dataset):
             try:
                 if ignore_warning:
                     warnings.filterwarnings('ignore', module=complex_to_aa.__name__)
-                result = complex_to_aa.extract(base_dir / meta.protein, base_dir / meta.ligand)
+                result = complex_to_aa.extract(base_dir / meta.protein, base_dir / meta.ligand,
+                                               r"{chain_close_pocket}")
             except Exception as err:
                 logging.error(f"{meta} -> \n{err}")
                 result = err

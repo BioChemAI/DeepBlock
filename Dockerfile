@@ -2,12 +2,6 @@ FROM continuumio/miniconda3 AS base
 
 SHELL ["/bin/bash", "--login", "-c"]
 
-# Some areas require
-COPY .devcontainer/src/.condarc /root/.condarc
-RUN conda clean -i && conda config --show
-RUN python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --upgrade pip && \
-    pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-
 RUN mkdir -p /app
 WORKDIR /app
 COPY environment.yml ./

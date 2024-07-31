@@ -5,7 +5,7 @@ from pathlib import Path
 import time
 
 from deepblock.evaluation import DockingToolBox
-from deepblock.utils import init_logging, mix_config, Toc
+from deepblock.utils import init_logging, mix_config, Toc, auto_dump
 
 
 def parse_opt():
@@ -35,12 +35,20 @@ if __name__ == '__main__':
     
     toc = Toc()
     logging.info("Start -> run_jobs")
-    bd.run_jobs()
+    score_lst = bd.run_jobs()
     logging.info(f"Finish -> run_jobs, toc: {datetime.timedelta(seconds=toc())}")
 
 
     logging.info("Start -> pack_tarball")
     tarball_fn = bd.pack_tarball(opt.output)
     logging.info(f"Finish -> pack_tarball, {tarball_fn}, toc: {datetime.timedelta(seconds=toc())}")
+
+    if "input" in input_fn_or_dn.stem:
+        score_fn = input_fn_or_dn.parent / (input_fn_or_dn.stem.replace('input', 'score') + '.json')
+    else:
+        score_fn = input_fn_or_dn.parent / (input_fn_or_dn.stem + '.score.json')
+
+    auto_dump(score_lst, score_fn, json_indent=True)
+    logging.info(f"Score list dumped to {score_fn}")
 
     logging.info("Done!")

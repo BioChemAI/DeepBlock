@@ -6,6 +6,7 @@ import hashlib
 from numbers import Number
 from pathlib import Path
 import shutil
+import os
 import sys
 import re
 import time
@@ -30,6 +31,8 @@ from ..utils import LoggingTrackerJoblibCallback, StrPath, Toc, TqdmTrackerJobli
     rdkit_log_handle, sequential_file_hash, file_hash, use_path, download_pbar, vin
 
 DEFAULT_VINA_CPU = 4
+REMOVE_HETATM_IN_PDB_FILE = os.getenv('RFRAGLI2_DTB_REMOVE_HETATM_IN_PDB_FILE', 
+                                      'false').lower() in ['true', '1', 't', 'y', 'yes']
 
 @dataclass
 class VinaBox:
@@ -377,6 +380,21 @@ class DockingToolBox:
             else:
                 pdb_fn = add_hs_pdb_fn
         
+        # For PDBbind pdb files, always raise an error:
+        # '  ' apparently composed of not std residues. Deleting
+        # AttributeError: member babel_type not found
+        # This should be a bug in prepare_receptor, temporarily resolved:
+        if REMOVE_HETATM_IN_PDB_FILE:
+            remove_hetatm_pdb_fn = use_path(file_path=pdbqt_fn.with_suffix(f'.remove_hetatm{pdb_fn.suffix}'))
+            with open(pdb_fn, 'r') as f:
+                pdb_lines = f.readlines()
+            repaired_lines = [line for line in pdb_lines if not line.startswith('HETATM')]
+            if repaired_lines != pdb_lines:
+                with open(remove_hetatm_pdb_fn, 'w') as f:
+                    f.writelines(repaired_lines)
+                warnings.warn(f"Remove {len(pdb_lines) - len(repaired_lines)} HETATM lines in pdb file {pdb_fn}")
+                pdb_fn = remove_hetatm_pdb_fn
+
         # In short, before the commit(Oct 23, 2020), the non-zero code return by reduce may make 
         # the output incomplete, so we should give up the result of reduce.
         # https://github.com/rlabduke/reduce/issues/5

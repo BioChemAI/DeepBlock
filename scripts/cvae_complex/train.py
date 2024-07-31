@@ -88,7 +88,13 @@ if __name__ == '__main__':
             # *LearnerCVAEComplex.opt_args,
         )
         for name in override_args:
-            opt[name] = bpt[name]
+            if name not in opt:
+                print(f"Keep old value: {bpt[name]=}")
+                opt[name] = bpt[name]
+            elif name not in bpt:
+                print(f"Find new value: {opt[name]=}")
+            elif opt[name] != bpt[name]:
+                print(f"Notice different value: {bpt[name]=} {opt[name]=}")
 
     # Initialize log, device, config, wandb
     init_logging(log_fn)
@@ -160,6 +166,8 @@ if __name__ == '__main__':
         logging.info(f"base_weight_fn: {opt.base_weight_fn}")
         model.load_state_dict(torch.load(
             opt.base_weight_fn, map_location=torch.device('cpu')))
+    if not model.c_attend:
+        logging.warning("Notice: No c_attend!")
 
     # Checkpoint
     ckpt = CheckpointManger(weights_dn, best_fn, save_step=10)
@@ -178,6 +186,7 @@ if __name__ == '__main__':
                     ndigits=5, prefix=f'ESM cache status: '))
         if opt.move_esm_model_to_cpu_after_warm:
             learner.esm_model.cpu()
+            torch.cuda.empty_cache()
             logging.info("Move ESM model to cpu after warm done!")
 
     # Loop

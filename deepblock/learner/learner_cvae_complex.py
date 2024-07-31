@@ -155,7 +155,7 @@ class LearnerCVAEComplex():
                     (recog_mu, torch.tensor(0)), (recog_log_var, torch.tensor(1).log()))
                 
             bow_loss = self.model.bow_loss(bow_logits, batch.x, self.x_vocab.special_idx)
-            if batch.c_rel is not None:
+            if batch.c_rel is not None and self.model.c_attend:
                 rel_loss = self.model.rel_loss(c_attn, batch.c_rel, batch.c_len)
             else:
                 rel_loss = torch.tensor(0)
@@ -218,7 +218,7 @@ class LearnerCVAEComplex():
                     (recog_mu, torch.tensor(0)), (recog_log_var, torch.tensor(1).log()))
                 
             bow_loss = self.model.bow_loss(bow_logits, batch.x, self.x_vocab.special_idx)
-            if batch.c_rel is not None:
+            if batch.c_rel is not None and self.model.c_attend:
                 rel_loss = self.model.rel_loss(c_attn, batch.c_rel, batch.c_len)
             else:
                 rel_loss = torch.tensor(0)
@@ -274,8 +274,9 @@ class LearnerCVAEComplex():
         return error
 
     def sample(self, item: ComplexAAItem, 
-               batch_size: int, desc='Sample', variational=True):
-
+               batch_size: int, desc='Sample', variational=True,
+               use_groundtruth_rel=False,
+               use_force_mean=False):
         batch = self.collate_fn([item])
 
         self.model.eval()
@@ -285,6 +286,7 @@ class LearnerCVAEComplex():
 
         assert batch.c is not None, "How can I predict without protein?"
         c_repr = self._esm_inference_batch(batch).to(self.device)
+        c_rel = batch.c_rel.float().to(self.device) if batch.c_rel is not None else None
 
         while True:
             with torch.no_grad():
@@ -294,10 +296,13 @@ class LearnerCVAEComplex():
                 ) = self.model.sample(
                     c=c_repr, c_len=batch.c_len,
                     special_idx=self.x_vocab.special_idx, x_max_len=self.x_max_len, 
-                    rep_times=batch_size, variational=variational
+                    rep_times=batch_size, variational=variational,
+                    use_groundtruth_rel=use_groundtruth_rel, c_rel=c_rel,
+                    use_force_mean=use_force_mean
                 )
 
-            c_attn = c_attn.cpu().detach().numpy()
+            if c_attn is not None:
+                c_attn = c_attn.cpu().detach().numpy()
             for i in range(batch_size):
                 prd_seq = prd[0, i][:prd_len[0, i]].tolist()
                 yield prd_seq, c_attn
@@ -340,7 +345,37 @@ class LearnerCVAEComplex():
             result_od[batch.id[i]] = _dic
 
         return result_od
-    
+
+    def encode_emb(self, batch: ComplexAABatch, 
+                   desc='Encode embedding') -> Tensor:
+        self.model.eval()
+        self.esm_model.eval()
+
+        batch.x = batch.x.to(self.device)
+        c_repr = self._esm_inference_batch(batch).to(self.device)
+
+        with torch.no_grad():
+            x_state = self.model.encode_x(batch.x, batch.x_len)
+            c_state, c_attn = self.model.encode_c(c_repr, batch.c_len)
+            xc_state = torch.cat((x_state, c_state), dim=1)
+            recog_mu, recog_log_var = self.model.recog_head(xc_state)
+        return recog_mu
+
+    def decode_emb(self, z: Tensor, batch: ComplexAABatch, 
+                   desc='Decode embedding') -> list[int]:
+        self.model.eval()
+        self.esm_model.eval()
+
+        z = z.to(self.device)
+        c_repr = self._esm_inference_batch(batch).to(self.device)
+
+        with torch.no_grad():
+            c_state, c_attn = self.model.encode_c(c_repr, batch.c_len)
+            z = torch.cat((z, c_state), dim=1)
+            recon, prd, prd_len = self.model.decode(z, self.x_vocab.special_idx, self.x_max_len)
+        prd_seqs = [prd[i][:prd_len[i]].tolist() for i in range(z.shape[0])]
+        return prd_seqs
+
     @classmethod
     def init_inference_from_saved_dn(cls, 
             saved_dn: StrPath, weight_choice: str,

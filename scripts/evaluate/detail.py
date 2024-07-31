@@ -29,6 +29,7 @@ def parse_opt():
     parser.add_argument("--suffix", type=str, default='')
     parser.add_argument("--docking-suffix", type=str)
     parser.add_argument("--retro-db", type=str, default="work/retro_db")
+    parser.add_argument("--test-smi-suffix", type=str, default='')
     opt = mix_config(parser, None)
     return opt
 
@@ -107,7 +108,7 @@ if __name__ == '__main__':
     ## Input
     detail_cycle = DetailCycle(
         sample_smi_fn = saved_dn / f"sample/smi{opt.suffix}.json",
-        sample_ref_smi_fn = saved_dn / f"test_smi.json",
+        sample_ref_smi_fn = saved_dn / f"test_smi{opt.test_smi_suffix}.json",
         docking_input_fn = saved_dn / f"evalute{opt.evaluate_suffix}/batch_docking_input{opt.docking_suffix}.auto",
         docking_score_fn = saved_dn / f"evalute{opt.evaluate_suffix}/batch_docking_score{opt.docking_suffix}.json",
         docking_lookup_fn = saved_dn / f"evalute{opt.evaluate_suffix}/batch_docking_lookup{opt.docking_suffix}.json",

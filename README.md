@@ -73,6 +73,10 @@ python scripts/preprocess/chembl.py \
 
 Download from the compressed package we provide <https://figshare.com/articles/dataset/crossdocked_pocket10_with_protein_tar_gz/25878871> (recommended). The alternative method is to obtain the files from the [3D-Generative-SBDD's index file](https://github.com/luost26/3D-Generative-SBDD/blob/main/data/README.md) and the [raw data for the CrossDocked2020 set](https://github.com/gnina/models/tree/master/data/CrossDocked2020). The script will re-fetch the required files.
 
+```bash
+tar xzf crossdocked_pocket10_with_protein.tar.gz
+```
+
 The following files are required to exist:
 
 - `$sbdd_dir/split_by_name.pt`
@@ -120,6 +124,9 @@ Finally, run the script
 ```bash
 python scripts/preprocess/pdbbind.py \
     --pdbbind-dir <PATH TO PDBBind>
+
+# Filter test set
+python scripts/preprocess/pdbbind_pick_set.py
 ```
 
 #### Merge Dictionary
@@ -138,7 +145,7 @@ python scripts/cvae_complex/train.py \
     --include chembl \
     --device cuda:0 \
     --config scripts/cvae_complex/frag_pretrain_config.yaml \
-    --vocab-fn "saved/preprocess/merge_vocabs/chembl,pdbbind&frag_vocab.json" \
+    --vocab-fn "saved/preprocess/merge_vocabs/chembl,crossdocked&frag_vocab.json" \
     --no-valid-prior
 ```
 
@@ -153,6 +160,8 @@ python scripts/cvae_complex/train.py \
     --config scripts/cvae_complex/complex_config.yaml \
     --base-train-id 20230303_191022_be9e
 ```
+
+> The checkpoint trained on ChEMBL and CrossDocked has been provided in the repository at `deepblock/public/saved/cvae_complex/20230305_163841_cee4`. By executing `cp -r deepblock/public/saved .`, you can directly continue with the following commands.
 
 ### Inference
 

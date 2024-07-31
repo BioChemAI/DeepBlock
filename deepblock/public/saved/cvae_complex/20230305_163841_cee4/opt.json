@@ -74,5 +74,6 @@
     "scripts/cvae_complex/complex_config.yaml"
   ],
   "train_id": "20230305_163841_cee4",
-  "base_weight_fn": "saved/cvae_complex/20230303_191022_be9e/weights/00199.pt"
+  "base_weight_fn": "saved/cvae_complex/20230303_191022_be9e/weights/00199.pt",
+  "c_attend": true
 }

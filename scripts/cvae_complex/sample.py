@@ -28,6 +28,8 @@ def parse_opt():
     parser.add_argument("--base-weight-choice", type=str, default="latest")
     parser.add_argument("--crossdocked-cached-dn", type=str,
                         default="saved/preprocess/crossdocked")
+    parser.add_argument("--pdbbind-cached-dn", type=str,
+                        default="saved/preprocess/pdbbind")
     parser.add_argument("--include", type=str,
                         choices=name_to_dataset_cls.keys(), default='crossdocked')
     parser.add_argument("--device", type=str, default="cpu")
@@ -39,6 +41,9 @@ def parse_opt():
     parser.add_argument("--validate-mol", action="store_true")
     parser.add_argument("--embed-mol", action="store_true")
     parser.add_argument("--unique-mol", action="store_true")
+    parser.add_argument("--groundtruth-rel", action="store_true")
+    parser.add_argument("--force-mean", action="store_true")
+    parser.add_argument("--post-suffix", type=str)
     opt = mix_config(parser, None)
     return opt
 
@@ -58,16 +63,28 @@ if __name__ == '__main__':
     _assert_lst = [v for k, v in opt_to_assert.items() if opt[k]]
     assert_suffixes, assert_types = zip(*_assert_lst)
 
+    assert not (opt.force_mean and opt.groundtruth_rel), \
+        "Args: --force-mean and --groundtruth-rel are mutually exclusive"
+
     if opt.suffix is None:
         opt.suffix = f'_{opt.num_samples}'
         opt.suffix += ''.join(assert_suffixes)
+        if opt.groundtruth_rel:
+            opt.suffix += '_rel'
+        if opt.force_mean:
+            opt.suffix += '_mean'
     else:
         opt.suffix = ''
+
+    if opt.post_suffix is None:
+        opt.post_suffix = ''
+
+    opt.suffix += opt.post_suffix
 
     # Define Path
     opt.train_id = opt.base_train_id
     saved_dn = Path(f"saved/{MODEL_TYPE}/{opt.train_id}")
-    log_fn = use_path(file_path=saved_dn / f"{STAGE}.log")
+    log_fn = use_path(file_path=saved_dn / f"{STAGE}{opt.post_suffix}.log")
     sample_log_fn = use_path(file_path=saved_dn / f"{STAGE}/{STAGE}{opt.suffix}.log")
     sample_fn_dic = edict(dict(
         status=use_path(file_path=saved_dn / f"{STAGE}/status{opt.suffix}.json"),
@@ -75,7 +92,7 @@ if __name__ == '__main__':
         smi=use_path(file_path=saved_dn / f"{STAGE}/smi{opt.suffix}.json"),
         attn=use_path(file_path=saved_dn / f"{STAGE}/attn{opt.suffix}.msgpack"),
     ))
-    test_smi_fn = use_path(file_path=saved_dn / "test_smi.json")
+    test_smi_fn = use_path(file_path=saved_dn / f"test_smi{opt.post_suffix}.json")
 
     # Initialize log, device
     init_logging((log_fn, sample_log_fn))
@@ -88,6 +105,7 @@ if __name__ == '__main__':
         device=opt.device
     )
     learner = api.learner
+    model = learner.model
 
     # Reproducibility
     init_random(opt.random_seed)
@@ -98,7 +116,10 @@ if __name__ == '__main__':
         opt[f"{opt.include}_cached_dn"])
     _dataset_opt = dict(d=_dataset,
                         rel_fn=learner.rel_fn,
-                        x_vocab=learner.x_vocab,
+                        # x_vocab=learner.x_vocab,
+                        # # If it is a different dataset, target molecules that 
+                        # # do not meet the x_vocab criteria will be ignored, 
+                        # # which is not necessary for sampling
                         x_max_len=learner.x_max_len,
                         c_max_len=learner.c_max_len,
                         split_pro_dic=split_pro_dic,
@@ -123,7 +144,9 @@ if __name__ == '__main__':
                                   assert_actions=set((ChemAssertActionEnum.LOGGING,)),
                                   max_attempts=opt.max_attempts,
                                   max_attempts_exceeded_action='stop',
-                                  desc=item.id)
+                                  desc=item.id,
+                                  use_groundtruth_rel=opt.groundtruth_rel,
+                                  use_force_mean=opt.force_mean)
         res_lst = []
         for res in islice(sampler, opt.num_samples):
             res_lst.append(res)

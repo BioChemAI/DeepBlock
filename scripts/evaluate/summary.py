@@ -24,6 +24,8 @@ def parse_opt():
     parser.add_argument("--suffix", type=str, default='')
     parser.add_argument("--docking-suffix", type=str)
     parser.add_argument("--retro-db", type=str, default="work/retro_db")
+    parser.add_argument("--test-smi-suffix", type=str, default='')
+    parser.add_argument("--ign-suffix", type=str)
     opt = mix_config(parser, None)
     return opt
 
@@ -37,6 +39,7 @@ class SummaryPipline:
             "QED, SA, Lipinski, LogP": self.item_qedsa,
             "Retro* Sucess Rate": self.item_retro,
             "Distribution": self.item_dist,
+            "IGN Affinity": self.item_ign,
         }
 
         # Final Dict format like {labels: value, ...}
@@ -87,7 +90,12 @@ class SummaryPipline:
             cid_to.miss: Dict[str, int] = dict()
             cid_to.count: Dict[str, int] = dict()
             cid_to.high: Dict[str, float] = dict()
-            for cid, smi_lst in sample_smi_dic.items():
+
+            ref_docking_succ_cid_lst = [cid for cid in sample_smi_dic.keys() if docking_lookup_dic.ref[cid] in hash_to_score]
+            if len(sample_smi_dic) - len(ref_docking_succ_cid_lst) > 0:
+                logging.warning(f"Ref Docking Fail: {len(sample_smi_dic) - len(ref_docking_succ_cid_lst)}")
+            for cid in ref_docking_succ_cid_lst:
+                smi_lst = sample_smi_dic[cid]
                 smi_to_hash = docking_lookup_dic.prd[cid]
                 h_lst = [smi_to_hash[smi] for smi in smi_lst]
                 score_lst = [hash_to_score[h] for h in h_lst if h in hash_to_score]
@@ -104,7 +112,9 @@ class SummaryPipline:
             self.final_dic[(name, 'miss', 'sum')] = sum(cid_to.miss.values())
 
             h_lst = [docking_lookup_dic.ref[cid] for cid in sample_ref_smi_dic.keys()]
-            score_lst = [hash_to_score[h] for h in h_lst]
+            score_lst = [hash_to_score[h] for h in h_lst if h in hash_to_score]
+            if len(h_lst) - len(score_lst) > 0:
+                logging.warning(f"Ref Docking Fail: {len(h_lst) - len(score_lst)}")
             mean_arr = np.array(score_lst)
             self.append_mms_to_dic(self.final_dic, mean_arr, name, 'ref')
 
@@ -198,9 +208,56 @@ class SummaryPipline:
             mean_arr = np.array([retro_dic[smi] is not None for smi in sample_ref_smi_dic.values()])
             self.append_mms_to_dic(self.final_dic, mean_arr, name, 'ref')
 
+
+    # 5. IGN Affinity
+    def item_ign(self, name):
+        try:
+            sample_smi_dic = auto_load(self.fns.sample_smi_fn)                   # {id: [smi, ...], ...}
+            sample_ref_smi_dic = auto_load(self.fns.sample_ref_smi_fn)           # {id: smi, ...}
+            docking_score_dic = auto_load(self.fns.ign_score_fn)             # [{id(hash), score}, ...]      Data will be missing!!
+            docking_lookup_dic = edict(auto_load(self.fns.docking_lookup_fn))    # {ref: {id: hash, ...}, prd: {id: {smi: hash, ...}, ...}}
+        except Exception as err:
+            logging.warning(f'Item {name} drop, because {repr(err)}')
+        else:
+            hash_to_score = docking_score_dic
+            cid_to = edict()
+            cid_to.mean: Dict[str, float] = dict()
+            cid_to.miss: Dict[str, int] = dict()
+            cid_to.count: Dict[str, int] = dict()
+            cid_to.high: Dict[str, float] = dict()
+
+            ref_docking_succ_cid_lst = [cid for cid in sample_smi_dic.keys() if docking_lookup_dic.ref[cid] in hash_to_score]
+            if len(sample_smi_dic) - len(ref_docking_succ_cid_lst) > 0:
+                logging.warning(f"Ref Docking Fail: {len(sample_smi_dic) - len(ref_docking_succ_cid_lst)}")
+            for cid in ref_docking_succ_cid_lst:
+                smi_lst = sample_smi_dic[cid]
+                smi_to_hash = docking_lookup_dic.prd[cid]
+                h_lst = [smi_to_hash[smi] for smi in smi_lst]
+                score_lst = [hash_to_score[h] for h in h_lst if h in hash_to_score]
+                cid_to.count[cid] = len(score_lst)
+                cid_to.mean[cid] = np.mean(score_lst)
+                cid_to.miss[cid] = len(h_lst) - len(score_lst)
+                # Be Careful lt means high
+                cid_to.high[cid] = np.mean(np.array(score_lst) <= hash_to_score[docking_lookup_dic.ref[cid]]) * 100
+
+            mean_arr = np.array(list(cid_to.mean.values()))
+            self.append_mms_to_dic(self.final_dic, mean_arr, name)
+            mean_arr = np.array(list(cid_to.high.values()))
+            self.append_mms_to_dic(self.final_dic, mean_arr, name, 'high', 'scale100')
+            self.final_dic[(name, 'miss', 'sum')] = sum(cid_to.miss.values())
+
+            h_lst = [docking_lookup_dic.ref[cid] for cid in sample_ref_smi_dic.keys()]
+            score_lst = [hash_to_score[h] for h in h_lst if h in hash_to_score]
+            if len(h_lst) - len(score_lst) > 0:
+                logging.warning(f"Ref Docking Fail: {len(h_lst) - len(score_lst)}")
+            mean_arr = np.array(score_lst)
+            self.append_mms_to_dic(self.final_dic, mean_arr, name, 'ref')
+
+
 if __name__ == '__main__':
     opt = parse_opt()
     opt.docking_suffix = ifn(opt.docking_suffix, opt.suffix)
+    opt.ign_suffix = ifn(opt.ign_suffix, opt.suffix)
 
     # Define Path
     opt.train_id = opt.base_train_id
@@ -212,12 +269,13 @@ if __name__ == '__main__':
     ## Input
     summary_pipline = SummaryPipline(
         sample_smi_fn = saved_dn / f"sample/smi{opt.suffix}.json",
-        sample_ref_smi_fn = saved_dn / f"test_smi.json",
+        sample_ref_smi_fn = saved_dn / f"test_smi{opt.test_smi_suffix}.json",
         docking_score_fn = saved_dn / f"evalute{opt.evaluate_suffix}/batch_docking_score{opt.docking_suffix}.json",
         docking_lookup_fn = saved_dn / f"evalute{opt.evaluate_suffix}/batch_docking_lookup{opt.docking_suffix}.json",
         qedsa_fn = saved_dn / f"evalute{opt.evaluate_suffix}/qedsa{opt.suffix}.json",
         dist_fn = saved_dn / f"evalute{opt.evaluate_suffix}/dist{opt.suffix}.json",
         retro_db = Path(opt.retro_db) if "retro_db" in opt else None,
+        ign_score_fn = saved_dn / f"evalute{opt.evaluate_suffix}/ign_score{opt.ign_suffix}.json",
     )
 
     ## Output

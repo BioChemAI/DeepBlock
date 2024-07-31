@@ -28,6 +28,7 @@ def parse_opt():
     parser.add_argument("--baseline", action="store_true")
     parser.add_argument("--evaluate-suffix", type=str, default='')
     parser.add_argument("--suffix", type=str, default='')
+    parser.add_argument("--test-smi-suffix", type=str, default='')
     opt = mix_config(parser, None)
     return opt
 
@@ -49,7 +50,7 @@ if __name__ == '__main__':
     ## Input
     sample_smi_fn = saved_dn / f"sample/smi{opt.suffix}.json"
     train_smi_fn = saved_dn / f"train_smi.json"
-    ref_smi_fn = saved_dn / f"test_smi.json"
+    ref_smi_fn = saved_dn / f"test_smi{opt.test_smi_suffix}.json"
 
     ## Output
     log_fn = [use_path(file_path=saved_dn / f"{STAGE}.log"),

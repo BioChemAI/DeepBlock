@@ -7,7 +7,7 @@ from functools import partial
 from tqdm import tqdm as std_tqdm
 tqdm = partial(std_tqdm, dynamic_ncols=True)
 
-from deepblock.datasets import name_to_dataset_cls
+from deepblock.datasets import name_to_dataset_cls, CrossDockedDataset, PDBbindDataset
 from deepblock.evaluation import DockingToolBox
 from deepblock.utils import Toc, auto_dump, auto_load, init_logging, \
     mix_config, use_path
@@ -27,7 +27,10 @@ def parse_opt():
     parser.add_argument("--base-train-id", type=str, required=True)
     parser.add_argument("--crossdocked-cached-dn", type=str,
                         default="saved/preprocess/crossdocked")
+    parser.add_argument("--pdbbind-cached-dn", type=str,
+                        default="saved/preprocess/pdbbind")
     parser.add_argument("--sbdd-dir", type=str)
+    parser.add_argument("--dataset-dir", type=str)
     parser.add_argument("--include", type=str,
                         choices=name_to_dataset_cls.keys(), default='crossdocked')
     parser.add_argument("--suffix", type=str)
@@ -54,7 +57,7 @@ if __name__ == '__main__':
     tarball_fn = use_path(file_path=saved_dn / f"evalute/batch_docking_input{opt.new_suffix}{'_dev' if opt.dev else ''}.auto")
     lookup_fn = use_path(file_path=saved_dn / f"evalute/batch_docking_lookup{opt.new_suffix}{'_dev' if opt.dev else ''}.json")
     tmp_dn = use_path(dir_path=opt.tmp_dn)
-    sbdd_dn = use_path(dir_path=opt.sbdd_dir, new=False)
+    dataset_dn = use_path(dir_path=opt.dataset_dir or opt.sbdd_dir, new=False)
 
     # Initialize log, device, config, wandb
     init_logging(log_fn)
@@ -64,9 +67,16 @@ if __name__ == '__main__':
     _dataset = name_to_dataset_cls[opt.include](
         opt[f"{opt.include}_cached_dn"])
     meta_lst = _dataset.source("meta")
-    test_meta_lst = [meta for meta in meta_lst if meta.split == "test"]
+    if isinstance(_dataset, CrossDockedDataset):
+        test_meta_lst = [meta for meta in meta_lst if meta.split == "test"]
+    elif isinstance(_dataset, PDBbindDataset):
+        test_id_set = _dataset.source("pick_set")["test"]
+        test_meta_lst = [meta for meta in meta_lst if meta.id in test_id_set]
+    else:
+        raise ValueError(f"Unknown dataset: {opt.include}")
     if opt.dev:
         test_meta_lst = test_meta_lst[:3]
+    logging.info(f"{len(test_meta_lst)=}, {test_meta_lst[0]}")
 
     # Docking Toolbox
     dtb = DockingToolBox(**{k: opt[k] for k in DockingToolBox.opt_args if k in opt})
@@ -92,18 +102,18 @@ if __name__ == '__main__':
     pbar = tqdm(test_meta_lst, desc='Batch Prepare (add)')
     for meta in pbar:
         complex = bp.add_complex(
-            receptor=(bp.ReceptorTypeEnum.PDB_FN, sbdd_dn / meta.protein),
-            ligand=(bp.LigandTypeEnum.SDF_FN, sbdd_dn / meta.ligand),
-            box=(bp.BoxTypeEnum.SDF_FN, sbdd_dn / meta.ligand),
+            receptor=(bp.ReceptorTypeEnum.PDB_FN, dataset_dn / meta.protein),
+            ligand=(bp.LigandTypeEnum.SDF_FN, dataset_dn / meta.ligand),
+            box=(bp.BoxTypeEnum.SDF_FN, dataset_dn / meta.ligand),
         )
         lookup_dic.ref[meta.id] = complex.id
 
         prd_lookup_dic = dict()
         for smi in sample_smi_dic[meta.id]:
             complex = bp.add_complex(
-                receptor=(bp.ReceptorTypeEnum.PDB_FN, sbdd_dn / meta.protein),
+                receptor=(bp.ReceptorTypeEnum.PDB_FN, dataset_dn / meta.protein),
                 ligand=(bp.LigandTypeEnum.SMI_STR, smi),
-                box=(bp.BoxTypeEnum.SDF_FN, sbdd_dn / meta.ligand),
+                box=(bp.BoxTypeEnum.SDF_FN, dataset_dn / meta.ligand),
             )
             prd_lookup_dic[smi] = complex.id
         lookup_dic.prd[meta.id] = prd_lookup_dic

@@ -16,6 +16,8 @@ split_pro:
     train: 0.8
     valid: 0.2
 
+use_pretrain_frag_vector: false
+
 ## Model
 
 # x_input_dim: Auto detect from x_vocab
@@ -89,3 +91,4 @@ beta_vae:
 #         max_beta: 1.0e-1
 
 show_tqdm: true
+c_attend: true

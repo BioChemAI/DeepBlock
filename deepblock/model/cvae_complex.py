@@ -51,6 +51,7 @@ class CVAEComplex(nn.Module):
         'h_hid_dim', 'latent_dim', 'bow_hid_dim', 
         'x_dropout', 'x_bidirectional', # 'x_emb_weight'
         'c_dropout', 'h_dropout', 'bow_dropout',
+        'c_attend'
     )
     
     def __init__(self, 
@@ -60,7 +61,8 @@ class CVAEComplex(nn.Module):
                 c_input_dim: int, c_emb_dim: int, c_eng_hid_dim: int,
                 h_hid_dim: int, latent_dim: int, bow_hid_dim: int,
                 x_dropout=0.25, x_bidirectional=False, x_emb_weight: Tensor=None,
-                c_dropout=0.25, h_dropout=0.25, bow_dropout=0.25):
+                c_dropout=0.25, h_dropout=0.25, bow_dropout=0.25,
+                c_attend=True):
         super().__init__()
         
         bid_num = 2 if x_bidirectional else 1
@@ -82,6 +84,8 @@ class CVAEComplex(nn.Module):
         self.x_decoder = DecoderRNN(x_input_dim, x_emb_dim, x_dec_hid_dim, x_dec_hid_layers, x_dropout)
 
         self.bow_head = MLPHead(latent_dim + c_emb_dim, bow_hid_dim, x_input_dim, bow_dropout)
+
+        self.c_attend = c_attend
 
     def forward(self, x: Tensor, x_len: Tensor, 
                 c: Tensor=None, c_len: Tensor=None,
@@ -146,7 +150,9 @@ class CVAEComplex(nn.Module):
 
     def sample(self, c: Tensor, c_len: Tensor,
                 special_idx: VocabSpecialIndex, x_max_len: int,
-                rep_times: int=1, variational=True):
+                rep_times: int=1, variational=True,
+                use_groundtruth_rel=False, c_rel: Tensor=None,
+                use_force_mean=False):
         
         if variational:
             assert rep_times >= 1 and isinstance(rep_times, int)
@@ -155,8 +161,21 @@ class CVAEComplex(nn.Module):
 
         bs, device = c.shape[0], c.device
         # c = [bs, c_max_len, c_emb_dim]
-        c_state, c_attn = self.encode_c(c, c_len)
-    
+
+        assert not (use_groundtruth_rel and use_force_mean), \
+            "Args: use_groundtruth_rel and use_force_mean are mutually exclusive"
+        
+        if use_groundtruth_rel or use_force_mean:
+            _c_attend_last = self.c_attend
+            self.c_attend = False
+        if use_groundtruth_rel:
+            assert c_rel is not None, "Need to provide `c_rel`"
+            c_state, c_attn = self.encode_c(c, c_len, c_rel)
+        else:
+            c_state, c_attn = self.encode_c(c, c_len)
+        if use_groundtruth_rel or use_force_mean:
+            self.c_attend = _c_attend_last
+
         # Drop c_state in pretrain stage
         # c_state = [bs, c_emb_dim]
 
@@ -205,20 +224,32 @@ class CVAEComplex(nn.Module):
         # x_state = [bs, bid_num*x_enc_hid_dim*x_enc_hid_layers]
         return x_state
 
-    def encode_c(self, c: Tensor, c_len: Tensor) -> Tensor:
+    def encode_c(self, c: Tensor, c_len: Tensor, c_rel: Tensor=None) -> Tensor:
         # c = [bs, c_max_len, c_input_dim]
         c_max_len = c.shape[1]
         c_mask = self.create_mask_by_lengths(c_max_len, c_len-1, device=c.device)
         c_mask[:,0] = False
         # c_mask = [bs, c_max_len]
 
-        c_attn: Tensor = self.c_energy(c)[:,:,0]
-        c_attn = c_attn.masked_fill(~c_mask, -1e10)
-        c_attn = torch.softmax(c_attn, dim=-1)
-        # c_attn = [bs, c_max_len]
-
-        c_state = torch.sum(c_attn[:,:,None] * c, dim=1)
-        # c_state = [bs, c_input_dim]
+        if self.c_attend:
+            if c_rel is None:
+                c_attn: Tensor = self.c_energy(c)[:,:,0]
+                c_attn = c_attn.masked_fill(~c_mask, -1e10)
+                c_attn = torch.softmax(c_attn, dim=-1)
+                # c_attn = [bs, c_max_len]
+                c_state = torch.sum(c_attn[:,:,None] * c, dim=1)
+                # c_state = [bs, c_input_dim]
+            else:
+                raise ValueError("Conflict between `c_attend` and `c_rel`")
+        else:
+            if c_rel is None:
+                c_attn = None
+                c_state = torch.sum(c_mask[:,:,None] * c, dim=1) / torch.sum(c_mask, dim=1)[:,None]
+                # c_state = [bs, c_input_dim]
+            else:
+                c_attn = None
+                c_state = torch.sum(c_rel[:,:,None] * c, dim=1)
+                # c_state = [bs, c_input_dim]
 
         c_state = self.fc_c_downsample(c_state)
         # c_state = [bs, c_emb_dim]
@@ -327,9 +358,11 @@ class CVAEComplex(nn.Module):
         ```
         """
         # Use trg[:, 1:] to remove sos
+        # It seems that 4090 hate torch.prod
+        # nvrtc: error: invalid value for --gpu-architecture (-arch)
         mask = trg[:,:,None].ne(
             torch.tensor(astuple(trg_special_idx), device=trg.device)[None,None,:]
-            ).prod(-1)
+            ).all(-1)
         loss = torch.sum(-F.log_softmax(bow_logits, 1).gather(1, trg) * mask)
         return loss
 

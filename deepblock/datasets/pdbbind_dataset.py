@@ -74,7 +74,8 @@ class PDBbindDataset(RawThirdDataset):
             "mol_to_frag": _cache_dn / "mol_to_frag.json",
             "frag_to_word": _cache_dn / "frag_to_word.json",
             "frag_vocab": _cache_dn / "frag_vocab.json",
-            "word_vocab": _cache_dn / "word_vocab.json"
+            "word_vocab": _cache_dn / "word_vocab.json",
+            "pick_set": _cache_dn / "pick_set.json"
         }
 
     def _preprocess_meta(self, pdbbind_dir: Path=None, 

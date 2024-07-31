@@ -2,7 +2,7 @@ from dataclasses import dataclass, field, fields
 from collections import Counter
 from io import StringIO
 from pathlib import Path
-from typing import List, Sequence, Tuple, Union
+from typing import Callable, List, Sequence, Tuple, Union
 import warnings
 
 import numpy as np
@@ -193,9 +193,11 @@ def extract_seq(seq: str, id: str='X'):
     """
     return ComplexAAExtract(id=id, seq=seq)
 
+CHAIN_SPECIAL_IDS = {r"{chain_argmax_length}", r"{chain_close_pocket}", r"{chain_first}"}
 def extract(protein_pdb_fn: Path, 
             ligand_sdf_fn: Path=None, chain_id: str=None,
-            close_threshold: int=8) -> ComplexAAExtract:
+            close_threshold: int=8,
+            logging_handle: Callable=lambda msg: None) -> ComplexAAExtract:
     """Extract rich chain information from protein PDB file.
 
     Args:
@@ -213,6 +215,7 @@ def extract(protein_pdb_fn: Path,
 
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure(protein_pdb_fn.stem, protein_pdb_fn)
+    assert len(structure) == 1, "PDB file contains multiple models or no model!"
     model = structure[0]
     chains = list(model)
 
@@ -239,17 +242,31 @@ def extract(protein_pdb_fn: Path,
     id_lst = [aa.id for aa in aa_lst]
     len_lst = [aa.len for aa in aa_lst]
 
-    if chain_id:
-        if chain_id not in id_lst:
-            raise ValueError(f"Chain ID {chain_id} not found in {id_lst}")
-        aa = aa_lst[id_lst.index(chain_id)]
-    elif aa.pocket_dist is not None:
-        close_dist_arr = np.array(
-            [np.sort(aa.pocket_dist)[:close_threshold].mean() for aa in aa_lst])
-        aa_idx = close_dist_arr.argmin()
+    if chain_id is None:
+        if aa.pocket_dist is None:
+            chain_id = r"{chain_argmax_length}"
+        else:
+            chain_id = r"{chain_close_pocket}"
+        logging_handle(f"Chain ID not provided, automatically select {repr(chain_id)}")
+
+    if chain_id in CHAIN_SPECIAL_IDS:
+        if chain_id == r"{chain_argmax_length}":
+            aa_idx = np.argmax(len_lst)
+        elif chain_id == r"{chain_close_pocket}":
+            assert aa.pocket_dist is not None, "Pocket distance not available!"
+            close_dist_arr = np.array(
+                [np.sort(aa.pocket_dist)[:close_threshold].mean() for aa in aa_lst])
+            aa_idx = close_dist_arr.argmin()
+        elif chain_id == r"{chain_first}":
+            aa_idx = 0
+        else:
+            raise NotImplementedError(f"Special Chain ID {chain_id} not implemented!")
         aa = aa_lst[aa_idx]
+        logging_handle(f"Special Chain ID resolved to {aa.id=}, {aa.len=}, {aa_idx=}")
     else:
-        aa_idx = np.argmax(len_lst)
-        aa = aa_lst[aa_idx]
-        
+        if chain_id not in id_lst:
+            raise ValueError(f"Chain ID {chain_id} not found in {id_lst}, "
+                             f"also not in special IDs: {list(CHAIN_SPECIAL_IDS)}")
+        else:
+            aa = aa_lst[id_lst.index(chain_id)]
     return aa

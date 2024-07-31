@@ -1,5 +1,6 @@
 from itertools import groupby
 import hashlib
+import random
 import numpy as np
 import torch
 from torch import Tensor
@@ -13,7 +14,7 @@ from esm.data import Alphabet
 
 from . import CrossDockedDataset, ChEMBLDataset, PDBbindDataset
 from ..utils import Vocab, VocabSpecialIndex, gc_disabled, ifn, norm_rel_fn, \
-    pick_by_idx, pretty_dataclass_repr, sorted_seqs, split_pro_to_idx, unique_by_key
+    pick_by_idx, pretty_dataclass_repr, sorted_seqs, split_pro_to_idx, auto_load
 from ..utils.complex_to_aa import ComplexAAExtract
 
 # 3 possibilities
@@ -111,7 +112,7 @@ class ComplexAACollate:
 
 class ComplexAADataset(Dataset):
     def __init__(self, 
-                d: Union[ChEMBLDataset, CrossDockedDataset],
+                d: Union[ChEMBLDataset, CrossDockedDataset, PDBbindDataset],
                 rel_fn: Callable[[np.ndarray], np.ndarray]=norm_rel_fn,
                 x_vocab: Vocab = None,
                 unique_xc_seq: bool=True, assert_x_in_vocab: bool=True, only_known: bool=True,
@@ -280,11 +281,21 @@ class ComplexAADataset(Dataset):
             self.cleaning_status["unique_xc_seq"] = len(self.raw_lst)
 
             if split_key:
-                if not split_idx_dic:
-                    split_idx_dic = split_pro_to_idx(split_pro_dic, total=len(self.raw_lst), seed=20230416)
-                pick_by_idx(
-                    self.raw_lst,
-                    idx_lst=split_idx_dic[split_key], inplace=True)
+                assert "test" not in split_pro_dic, "test should not be in split_pro_dic"
+                pick_set_dic = d.source("pick_set")
+
+                if split_key == "test":
+                    _id_set = set(pick_set_dic["test"])
+                    self.raw_lst = list(filter(lambda x: x['id'] in _id_set, self.raw_lst))
+                else:
+                    _id_set = set(pick_set_dic["train"])
+                    self.raw_lst = list(filter(lambda x: x['id'] in _id_set, self.raw_lst))
+
+                    if not split_idx_dic:
+                        split_idx_dic = split_pro_to_idx(split_pro_dic, total=len(self.raw_lst), seed=20240723)
+                    pick_by_idx(
+                        self.raw_lst,
+                        idx_lst=split_idx_dic[split_key], inplace=True)
                 self.cleaning_status[f"split_{split_key}"] = len(self.raw_lst)
 
         else:
@@ -310,8 +321,10 @@ class ComplexAADataset(Dataset):
         self.x_max_len = x_max_len
         self.c_max_len = c_max_len
 
-        assert self.x_max_len > 2, "x_max_len should > 2"
-        assert self.c_max_len > 2, "c_max_len should > 2"
+        if self.x_max_len is not None:
+            assert self.x_max_len > 2, "x_max_len should > 2"
+        if self.c_max_len is not None:
+            assert self.c_max_len > 2, "c_max_len should > 2"
 
         self.transform = transform
 
