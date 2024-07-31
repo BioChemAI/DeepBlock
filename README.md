@@ -6,12 +6,12 @@
 ![GitHub forks](https://badgen.net/github/forks/BioChemAI/DeepBlock)
 ![GitHub stars](https://img.shields.io/github/stars/BioChemAI/DeepBlock.svg)
 
-This is the official implantation of the paper "A Deep Learning Approach for Rational Ligand Generation with Property Control via Reactive Building Blocks".
-Additionally, we offer a user-friendly [web server](https://biochemai.app.pizyds.com/) to implement the functionality of DeepBlock.
+This is the official implementation of the paper "A Deep Learning Approach for Rational Ligand Generation with Property Control via Reactive Building Blocks".
+Additionally, we offer a user-friendly [online platform](https://biochemai.app.pizyds.com/) to implement the functionality of DeepBlock.
 
 [Github](https://github.com/BioChemAI/DeepBlock) -
 [Docker Hub](https://hub.docker.com/r/pillarszhang/deepblock) -
-[Web Server](https://biochemai.app.pizyds.com/)
+[Online Platform](https://biochemai.app.pizyds.com/)
 
 ## Table of Contents
 
