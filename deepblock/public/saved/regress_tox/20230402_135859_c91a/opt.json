@@ -1,0 +1,16 @@
+{
+  "random_seed": 20230401,
+  "split_pro": {
+    "train": 0.75,
+    "test": 0.25
+  },
+  "toxric_cached_dn": "saved/preprocess/toxric",
+  "check_fingerprint": false,
+  "tpot_scale": "full",
+  "n_jobs": 56,
+  "suffix": null,
+  "dev": false,
+  "no_wandb": false,
+  "config": [],
+  "train_id": "20230402_135859_c91a"
+}

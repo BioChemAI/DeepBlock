@@ -192,6 +192,14 @@ python scripts/cvae_complex/optimize.py \
 
 #### Property optimization (SA)
 
+Train a drug toxicity decision tree predictor based on molecular fingerprints. The script will automatically download the dataset from [TOXRIC](https://toxric.bioinforai.tech/) and use TPOT for automatic parameter tuning.
+
+> The trained checkpoint has already been provided in the repository at `deepblock/public/saved/regress_tox/20230402_135859_c91a`.
+
+```bash
+python scripts/regress_tox/train.py
+```
+
 ```bash
 python scripts/cvae_complex/sample_sa.py \
     --device cpu \
