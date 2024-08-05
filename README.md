@@ -231,3 +231,63 @@ python scripts/cvae_complex/sample_sa.py \
     --num-steps 50 \
     --complex-id F16P1_HUMAN_1_338_0/3kc1_A_rec_3kc1_2t6_lig_tt_min_0
 ```
+
+### Evaluate
+
+#### Vina score
+
+Automatically download and configure tools such as ADFR Suite and QuickVina2, and check the docking toolchain. They will be deployed to the `work/docking_toolbox` directory in the working directory.
+
+```bash
+python scripts/evaluate/init_docking_toolbox.py
+```
+
+The `prepare_batch_docking.py` script will retrieve previously sampled molecules from the `--base-train-id` folder, then deduplicate and prepare pdbqt files. It will construct receptor-ligand pairs, generate hashes, compress and create a docking task package, as well as generate a lookup table for the sampled results and docking task hashes.
+
+```bash
+python scripts/evaluate/prepare_batch_docking.py \
+	--include crossdocked \
+	--sbdd-dir ~/dataset/crossdocked_pocket10_with_protein \
+	--base-train-id 20230305_163841_cee4 \
+	--suffix _100veu \
+	--n-jobs 8 \
+	--dock-backend qvina2
+```
+
+Next, the docking task package can be transferred to other computers or shared computing platforms to execute batch docking tasks with any number of processes.
+
+```bash
+python scripts/evaluate/run_batch_docking.py \
+    --dock-backend qvina2 \
+    --input saved/cvae_complex/20230305_163841_cee4/evalute/batch_docking_input_100veu_qvina2.7z \
+    --n-procs 40
+```
+
+After this script finishes, it will automatically package the docking results. Additionally, it will copy the JSON file containing the hash-score to the same folder as the docking task package. You can then copy it back to your computer.
+
+#### QED & SA
+
+```bash
+python scripts/evaluate/compute_qedsa.py \
+    --base-train-id 20230305_163841_cee4 \
+    --suffix _100veu
+```
+
+#### Diversity
+
+```bash
+python scripts/evaluate/compute_dist.py \
+    --base-train-id 20230305_163841_cee4 \
+    --suffix _100veu
+```
+
+#### Summary
+
+The script will compile the above-generated metrics to produce the final mean and variance.
+
+```bash
+python scripts/evaluate/summary.py \
+    --base-train-id 20230305_163841_cee4 \
+    --suffix _100veu \
+    --docking-suffix _100veu_qvina2
+```
