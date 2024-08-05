@@ -30,6 +30,7 @@ def parse_opt():
     parser.add_argument("--docking-suffix", type=str)
     parser.add_argument("--retro-db", type=str, default="work/retro_db")
     parser.add_argument("--test-smi-suffix", type=str, default='')
+    parser.add_argument("--export-fn", type=str, default=None)
     opt = mix_config(parser, None)
     return opt
 
@@ -138,5 +139,9 @@ if __name__ == '__main__':
     df = pd.DataFrame(detail_records)
     df.to_csv(final_csv_fn, index=False)
     logging.info(f"Saved -> final_csv_fn: {final_csv_fn}, toc: {toc():.3f}")
+
+    if opt.export_fn is not None:
+        df.to_csv(opt.export_fn, index=False)
+        logging.info(f"Saved -> export_fn: {opt.export_fn}, toc: {toc():.3f}")
 
     logging.info("Done!")

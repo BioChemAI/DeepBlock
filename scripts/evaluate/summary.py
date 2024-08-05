@@ -26,6 +26,7 @@ def parse_opt():
     parser.add_argument("--retro-db", type=str, default="work/retro_db")
     parser.add_argument("--test-smi-suffix", type=str, default='')
     parser.add_argument("--ign-suffix", type=str)
+    parser.add_argument("--export-fn", type=str, default=None)
     opt = mix_config(parser, None)
     return opt
 
@@ -202,11 +203,11 @@ class SummaryPipline:
 
             self.final_dic[(name, 'miss', 'sum')] = sum(cid_to_miss.values())
 
-            mean_arr = np.array(list(cid_to_retro.values()))
-            self.append_mms_to_dic(self.final_dic, mean_arr, name)
+            mean_arr = np.array(list(cid_to_retro.values())) * 100
+            self.append_mms_to_dic(self.final_dic, mean_arr, name, 'scale100')
 
-            mean_arr = np.array([retro_dic[smi] is not None for smi in sample_ref_smi_dic.values()])
-            self.append_mms_to_dic(self.final_dic, mean_arr, name, 'ref')
+            mean_arr = np.array([retro_dic[smi] is not None for smi in sample_ref_smi_dic.values()]) * 100
+            self.append_mms_to_dic(self.final_dic, mean_arr, name, 'ref', 'scale100')
 
 
     # 5. IGN Affinity
@@ -312,5 +313,10 @@ if __name__ == '__main__':
     logging.info(final_dic)
     auto_dump(final_dic, final_fn, json_indent=True)
     logging.info(f"Saved -> final_fn: {final_fn}, toc: {toc():.3f}")
+
+    if opt.export_fn is not None:
+        export_fn = use_path(file_path=opt.export_fn)
+        auto_dump(final_dic, export_fn, json_indent=True)
+        logging.info(f"Saved -> export_fn: {export_fn}")
 
     logging.info("Done!")

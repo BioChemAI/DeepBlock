@@ -625,6 +625,7 @@ class APICVAEComplex4SA(APICVAEComplex):
         self.popu_lst: _TPopuSA = list()
         self.seq_dic: Dict[_TSMILES, List[int]] = dict()
         self.popu_lst_history: Dict[str, _TPopuSA] = dict()
+        self.log_timestamp: Dict[int, float] = dict()
 
     def generate_popu(self, desc="Initialize Population") -> int:
         sampler = self.chem_sample(self.c_item, self.batch_size)
@@ -674,6 +675,8 @@ class APICVAEComplex4SA(APICVAEComplex):
     def log_popu(self, epoch: int) -> str:
         popu_lst = self.popu_lst.copy()
         self.popu_lst_history[epoch] = popu_lst
+        self.log_timestamp[epoch] = time.time()
+        
         sorted_lst, fitness_dic = self.evaluate_popu(popu_lst)
         score_lst_dic = defaultdict(list)
         for score_dic in fitness_dic.values():
@@ -726,6 +729,7 @@ class APICVAEComplex4SA(APICVAEComplex):
         dic['popu'] = [self.popu_lst_history[i] for i in range(len(self.popu_lst_history))]
         _, dic['fitness'] = self.evaluate_popu(list(set(chain.from_iterable(dic['popu']))))
         dic['para'] = dict(T0=self.T0, D=self.D, Tf=self.Tf)
+        dic['timestamp'] = [self.log_timestamp[i] for i in range(len(self.log_timestamp))]
         return dic
 
 _TEmb = Tuple[float]
@@ -754,6 +758,7 @@ class APICVAEComplex4GP(APICVAEComplex):
     def init_popu(self,
                   c_item: ComplexAAItem, fitness_fn: Callable[[_TPopuSA], _TFitness],
                   popu_size: int=200, num_candidates: int = 50, num_restarts: int = 10, raw_samples: int = 256,
+                  latent_bounds: float | tuple=None,
                   batch_size: int=8, random_seed: int=20230403) -> None:
         """Initialize Population
         """
@@ -769,6 +774,11 @@ class APICVAEComplex4GP(APICVAEComplex):
         self.num_restarts = num_restarts
         self.raw_samples = raw_samples
 
+        if isinstance(latent_bounds, Number):
+            self.latent_bounds = (-latent_bounds, latent_bounds)
+        else:
+            self.latent_bounds = latent_bounds
+
         self.r = np.random.default_rng(random_seed)
         self.gp_state_dict = None
         self.gp_bounds = None
@@ -776,6 +786,15 @@ class APICVAEComplex4GP(APICVAEComplex):
         self.popu_lst: _TPopuGP = list()
         self.emb_dic: Dict[_TEmb, _TSMILES] = dict()
         self.trans_smi_lst: Dict[int, _TPopuSA] = dict()
+        self.log_timestamp: Dict[int, float] = dict()
+
+    def generate_popu(self, desc="Initialize Population") -> int:
+        sampler = self.chem_sample(self.c_item, self.batch_size)
+        sample_res_gen = islice(sampler, self.popu_size)
+        pbar = tqdm(sample_res_gen, total=self.popu_size, desc=desc)
+        res_lst = list(pbar)
+        self.fill_popu(res_lst)
+        return res_lst
 
     def fill_popu(self, res_lst: list) -> None:
         emb_lst = self.seqs_to_embs([res["seq"] for res in res_lst])
@@ -784,7 +803,10 @@ class APICVAEComplex4GP(APICVAEComplex):
             self.popu_lst.append(emb)
             self.emb_dic[emb] = res.smi
         embs = torch.tensor(emb_lst, dtype=float)
-        self.gp_bounds = torch.stack([embs.min(0).values, embs.max(0).values])
+        if self.latent_bounds is None:
+            self.gp_bounds = torch.stack([embs.min(0).values, embs.max(0).values])
+        else:
+            self.gp_bounds = torch.tensor(self.latent_bounds, dtype=float)[:, None].repeat(1, embs.shape[1])
         assert len(self.popu_lst) == self.popu_size
         return res_lst
 
@@ -842,6 +864,7 @@ class APICVAEComplex4GP(APICVAEComplex):
     def log_popu(self, epoch: int, res_lst: list[dict]) -> str:
         trans_smi_lst = [res["smi"] for res in res_lst]
         self.trans_smi_lst[epoch] = trans_smi_lst
+        self.log_timestamp[epoch] = time.time()
 
         popu_lst = self.popu_lst.copy()
         # sorted_lst, fitness_dic = self.evaluate_popu(popu_lst)
@@ -864,10 +887,11 @@ class APICVAEComplex4GP(APICVAEComplex):
 
     def run(self, epochs: int, top_k: int=-1, fill_popu_res_lst: list[dict]=None) -> List[_TFitness]:
         if fill_popu_res_lst is None:
-            raise NotImplementedError("fill_popu_res_lst is None")
-        res_lst = self.fill_popu(fill_popu_res_lst)
+            res_lst = self.generate_popu()
+        else:
+            res_lst = self.fill_popu(fill_popu_res_lst)
         log_res = self.log_popu(0, res_lst)
-        logging.info(f"{log_res}, succ: {len(res_lst)/len(fill_popu_res_lst)*100:.3f}%")
+        logging.info(f"{log_res}, succ: {len(res_lst)/self.popu_size*100:.3f}%")
 
         for epoch in range(epochs):
             res_lst = self.update_popu()
@@ -909,6 +933,7 @@ class APICVAEComplex4GP(APICVAEComplex):
         dic['para'] = dict(num_candidates=self.num_candidates, 
                            num_restarts=self.num_restarts, 
                            raw_samples=self.raw_samples)
+        dic['timestamp'] = [self.log_timestamp[i] for i in range(len(self.log_timestamp))]
         return dic
 
 ITEM_MAKER_INPUT_TYPES = {'seq', 'pdb', 'url', 'pdb_fn', 'pdb_id'}
